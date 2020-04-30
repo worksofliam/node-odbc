@@ -2014,7 +2014,7 @@ SQLRETURN ODBCConnection::BindColumns(QueryData *data) {
 
     Column *column = new Column();
 
-    column->ColumnName = new SQLTCHAR[this->maxColumnNameLength]();
+    column->ColumnName = new SQLTCHAR[this->maxColumnNameLength + 1]();
 
     DEBUG_PRINTF("[SQLHENV: %p][SQLHDBC: %p][SQLHSTMT: %p] ODBCConnection::BindColumns(): Running SQLDescribeCol(StatementHandle = %p, ColumnNumber = %d, ColumnName = %s, BufferLength = %d, NameLength = %d, DataType = %d, ColumnSize = %lu, DecimalDigits = %d, Nullable = %d)\n", this->hENV, this->hDBC, data->hSTMT, data->hSTMT, i + 1, column->ColumnName, this->maxColumnNameLength, column->NameLength, column->DataType, column->ColumnSize, column->DecimalDigits, column->Nullable);
     data->sqlReturnCode = SQLDescribeCol(
@@ -2047,6 +2047,17 @@ SQLRETURN ODBCConnection::BindColumns(QueryData *data) {
         // Ensure that it is a minimum of 8.
         column->ColumnSize = 8;
     }
+
+    // TODO: Allow users to pass a prefix to append numbers to?
+    #ifdef UNICODE
+      if (column->NameLength == 0 || strlen16((const char16_t *)column->ColumnName) == 0) {
+        swprintf((wchar_t *)column->ColumnName, 6, L"_%05d", i);
+      }
+    #else
+      if (column->NameLength == 0 || strlen((const char *)column->ColumnName) == 0) {
+        sprintf((char *)column->ColumnName, "_%05d", i);
+      }
+    #endif
 
     DEBUG_PRINTF("[SQLHENV: %p][SQLHDBC: %p][SQLHSTMT: %p] ODBCConnection::BindColumns(): SQLDescribeCol passed: ColumnName = %s, NameLength = %d, DataType = %d, ColumnSize = %lu, DecimalDigits = %d, Nullable = %d\n", this->hENV, this->hDBC, data->hSTMT, column->ColumnName, column->NameLength, column->DataType, column->ColumnSize, column->DecimalDigits, column->Nullable);
     // bind depending on the column
