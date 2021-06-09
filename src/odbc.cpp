@@ -430,6 +430,7 @@ class ConnectAsyncWorker : public ODBCAsyncWorker {
       hEnv(hEnv) {}
 
     ~ConnectAsyncWorker() {
+      delete options;
       delete[] connectionStringPtr;
     }
 };

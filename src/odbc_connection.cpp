@@ -1074,7 +1074,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
 
         if (data->parameters[i]->InputOutputType == SQL_PARAM_OUTPUT) {
           SQLSMALLINT bufferSize = 0;
-          data->parameters[i]->StrLen_or_IndPtr = *(new SQLLEN());
+          data->parameters[i]->StrLen_or_IndPtr = 0;
           switch(data->parameters[i]->ParameterType) {
             case SQL_DECIMAL:
             case SQL_NUMERIC:
@@ -1188,6 +1188,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
       sprintf((char *)data->sql, "{ CALL %s (%s) }", combinedProcedureName, parameterString);
 
       delete[] combinedProcedureName;
+      delete[] parameterString;
 
       DEBUG_PRINTF("[SQLHENV: %p][SQLHDBC: %p][SQLHSTMT: %p] ODBCConnection::CallProcedureAsyncWorker::Execute(): Calling SQLExecDirect(StatementHandle = %p, StatementText = %s, TextLength = %d)\n", this->odbcConnectionObject->hENV, this->odbcConnectionObject->hDBC, data->hSTMT, data->hSTMT, data->sql, SQL_NTS);
       data->sqlReturnCode = SQLExecDirect(
@@ -1242,6 +1243,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
       }
 
     ~CallProcedureAsyncWorker() {
+      delete[] overwriteParams;
       delete data;
     }
 };

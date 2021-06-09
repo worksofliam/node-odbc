@@ -146,102 +146,84 @@ typedef struct QueryData {
   SQLRETURN sqlReturnCode;
 
   ~QueryData() {
-    this->clear();
-  }
+    deleteColumns();
 
-  void deleteColumns() {
-    if (this->columnCount > 0) {
-      for (int i = 0; i < this->columnCount; i++) {
-        delete this->columns[i]->ColumnName;
-        delete this->columns[i];
+    for (int i = 0; i < this->bindValueCount; i++) {
+      Parameter* parameter = this->parameters[i];
+      if (parameter->ParameterValuePtr != NULL) {
+        switch (parameter->ValueType) {
+          case SQL_C_SBIGINT:
+            delete (int64_t*)parameter->ParameterValuePtr;
+            break;
+          case SQL_C_DOUBLE:
+            delete (double*)parameter->ParameterValuePtr;
+            break;
+          case SQL_C_BIT:
+            delete (bool*)parameter->ParameterValuePtr;
+            break;
+          case SQL_C_TCHAR:
+          default:
+            delete[] (SQLTCHAR*)parameter->ParameterValuePtr;
+            break;
+        }
       }
+      parameter->ParameterValuePtr = NULL;
+      delete parameter;
     }
 
-    delete columns; columns = NULL;
-    delete boundRow; boundRow = NULL;
-    delete sql; sql = NULL;
-    this->columnCount = 0;
-    this->storedRows.clear();
-  }
-
-  void clear() {
-
-    for (size_t h = 0; h < this->storedRows.size(); h++) {
-      delete[] storedRows[h];
-    };
-
-    int numParameters = std::max<SQLSMALLINT>(this->bindValueCount, this->parameterCount);
-
-    if (numParameters > 0) {
-
-      Parameter* parameter;
-
-      for (int i = 0; i < numParameters; i++) {
-        if (parameter = this->parameters[i], parameter->ParameterValuePtr != NULL) {
-          switch (parameter->ValueType) {
-            case SQL_C_SBIGINT:
-              delete (int64_t*)parameter->ParameterValuePtr;
-              break;
-            case SQL_C_DOUBLE:
-              delete (double*)parameter->ParameterValuePtr;
-              break;
-            case SQL_C_BIT:
-              delete (bool*)parameter->ParameterValuePtr;
-              break;
-            case SQL_C_TCHAR:
-            default:
-              delete[] (SQLTCHAR*)parameter->ParameterValuePtr;
-              break;
-          }
-        }
-        parameter->ParameterValuePtr = NULL;
-        delete parameter;
-      }
-
+    if (this->parameters) {
       delete[] this->parameters; this->parameters = NULL;
       this->bindValueCount = 0;
       this->parameterCount = 0;
     }
 
-    if (this->columnCount > 0) {
-      for (int i = 0; i < this->columnCount; i++) {
-        switch (this->columns[i]->bind_type) {
-          case SQL_C_CHAR:
-          case SQL_C_UTINYINT:
-          case SQL_C_BINARY:
-            delete[] (SQLCHAR *)this->boundRow[i];
-            break;
-          case SQL_C_WCHAR:
-            delete[] (SQLWCHAR *)this->boundRow[i];
-            break;
-          case SQL_C_DOUBLE:
-            delete[] (SQLDOUBLE *)this->boundRow[i];
-            break;
-          case SQL_C_USHORT:
-            delete[] (SQLUSMALLINT *)this->boundRow[i];
-            break;
-          case SQL_C_SLONG:
-            delete[] (SQLUINTEGER *)this->boundRow[i];
-            break;
-          case SQL_C_UBIGINT:
-            delete[] (SQLUBIGINT *)this->boundRow[i];
-            break;
-        }
-        delete[] this->columns[i]->ColumnName;
-        delete this->columns[i];
-      }
-    }
-
-    delete[] columns; columns = NULL;
-    delete[] boundRow; boundRow = NULL;
-
-    delete[] this->sql; this->sql = NULL;
     delete[] this->catalog; this->catalog = NULL;
     delete[] this->schema; this->schema = NULL;
     delete[] this->table; this->table = NULL;
     delete[] this->type; this->type = NULL;
     delete[] this->column; this->column = NULL;
     delete[] this->procedure; this->procedure = NULL;
+  }
+
+  void deleteColumns() {
+    for (size_t h = 0; h < this->storedRows.size(); h++) {
+      delete[] storedRows[h];
+    };
+    this->storedRows.clear();
+
+    for (int i = 0; i < this->columnCount; i++) {
+      switch (this->columns[i]->bind_type) {
+        case SQL_C_CHAR:
+        case SQL_C_BINARY:
+          delete[] (SQLCHAR *)this->boundRow[i];
+          break;
+        case SQL_C_WCHAR:
+          delete[] (SQLWCHAR *)this->boundRow[i];
+          break;
+        case SQL_C_DOUBLE:
+          delete (SQLDOUBLE *)this->boundRow[i];
+          break;
+        case SQL_C_UTINYINT:
+          delete (SQLCHAR *)this->boundRow[i];
+          break;
+        case SQL_C_USHORT:
+          delete (SQLUSMALLINT *)this->boundRow[i];
+          break;
+        case SQL_C_SLONG:
+          delete (SQLUINTEGER *)this->boundRow[i];
+          break;
+        case SQL_C_UBIGINT:
+          delete (SQLUBIGINT *)this->boundRow[i];
+          break;
+      }
+      delete[] this->columns[i]->ColumnName;
+      delete this->columns[i];
+    }
+
+    delete[] columns; columns = NULL;
+    delete[] boundRow; boundRow = NULL;
+    delete[] sql; sql = NULL;
+    this->columnCount = 0;
   }
 
 } QueryData;
